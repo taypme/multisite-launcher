@@ -1,0 +1,106 @@
+<?php
+
+/**
+ * @file
+ * Tab launcher for QA testing/script running on multisite installations with similar URL structures
+ */
+
+define('MSL', 'multisite_launcher');
+
+require_once(drupal_get_path('module', MSL) . '/multisite_launcher.tools.sites.inc');
+require_once(drupal_get_path('module', MSL) . '/multisite_launcher.admin.inc');
+
+function multisite_launcher_menu() {
+  $items = array();
+  $items['admin/config/' . MSL] = array(
+    'title' => 'Multsite Launcher',
+    'description' => 'Configuration for Multisite Launcher module',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(MSL . '_config_source'),
+    'access arguments' => array('configure multisite launcher'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/config/' . MSL . '/enabled'] = array(
+    'title' => 'Enabled Sites',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(MSL . '_config_enabled'),
+    'access arguments' => array('configure multisite launcher'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 2
+  );
+  $items[MSL] = array(
+    'title' => 'Multsite Launcher',
+    'description' => 'Launch a single URL parameter string across multiple multisite domains',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(MSL . '_form', multisite_launcher_get_sites('enabled')),
+    'access arguments' => array('access multisite launcher'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+function multisite_launcher_permission() {
+  return array(
+    'configure multisite launcher' => array(
+      'title' => t('Configure Multisite Launcher'),
+    ),
+    'access multisite launcher' => array(
+      'title' => t('Access Multisite Launcher'),
+    ),
+  );
+}
+function multisite_launcher_form($form, &$form_state, $sites, $full = TRUE) {
+  $form = array();
+  $form['#attached']['js'] = array(
+    drupal_get_path('module', MSL) . '/' . MSL . '.js' => array(
+    'type' => 'file',
+    ),
+  );
+  
+  // Defining parameter_string form item
+  $form['parameter_string'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Parameter String',
+    '#attributes' => array(
+      'data-multisite-launcher' => '0',
+      'class' => array(
+        MSL . '_str'
+      )
+    )
+  );
+
+  // Defining site form items
+  foreach ($sites as $i => $site) {
+    $fstr  = _multisite_launcher_fstr($site) . '_enabled';
+    $site  = _multisite_launcher_fstr($site, TRUE);
+    $link  = 'multisite-launcher-' . $fstr;
+
+    $form[$fstr] = array(
+      '#title' => '<a href="' . $site . '" id="' . $link . '">' . $site . '</a>',
+      '#type' => 'checkbox',
+      '#default_value' => variable_get($fstr, 1),
+      '#attributes' => array(
+        'data-multisite-launcher-checkbox' => $site,
+        'data-multisite-launcher-link-id' => $link,
+        'data-multisite-launcher-counter' => $i
+      )
+    );
+  }
+
+  // System settings form
+  $form = system_settings_form($form);
+  
+  // Defining form actions
+  $form['actions']['launch'] = array(
+    '#type' => 'submit',
+    '#value' => 'Launch Sites',
+    '#attributes' => array(
+      'onclick' => 'return Drupal.multisite_launcher.launch()',
+    )
+  );
+  
+  if($full) {
+    $form['actions']['submit']['#value'] = 'Save Defaults';
+  }
+
+  return $form;
+}

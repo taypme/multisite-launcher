@@ -1,0 +1,12 @@
+name = Multisite Launcher
+description = "Tab launcher for QA testing/script running on multisite installations with similar URL structures"
+package = Multisite Launcher
+version = 1.0
+core = 7.x
+configure = admin/config/multisite_launcher
+
+; Information added by drupal.org packaging script on 2013-03-07
+version = "7.21"
+project = "drupal"
+datestamp = "1362616996"
+
